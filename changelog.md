@@ -1,3 +1,8 @@
+##### 1.3.3
+
+- Fix: the elevation icon (and the scale/position settings) only ever applied while actively dragging a token, because core's `_refreshTooltip` — the method this module hooks — only actually runs during a drag; hovering a stationary token merely toggles the tooltip's visibility without recomputing its content, so nothing this module does ever ran outside of a drag. The module now also forces a refresh whenever a token is hovered or selected, so the icon/scale/position apply in the normal case, not just while dragging.
+- Fix: a token whose last refresh happened before the elevation icon's texture had finished loading was left with the icon hidden and no reason to refresh again on its own. The icon now automatically re-applies to all tokens the moment the texture finishes loading, rather than waiting for the next hover/drag.
+
 ##### 1.3.2
 
 - Fix: the crash still recurred after 1.3.1's `texture.valid` check, because the icon's texture was being re-resolved via `PIXI.Texture.from()`/`getTexture()` on every single refresh instead of reused, which appears to have kept producing a texture whose `.valid` never settled permanently true. The icon's texture is now loaded exactly once (asynchronously) and the same confirmed-loaded `PIXI.Texture` instance is reused for every token from then on.

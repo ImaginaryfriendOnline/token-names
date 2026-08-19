@@ -1,6 +1,6 @@
 {
     "name": "token-names",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "private": true,
     "type": "module",
     "description": "Foundry VTT v14 module that keeps token nameplates from overflowing their token.",

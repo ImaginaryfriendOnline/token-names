@@ -354,7 +354,18 @@ function getFlyTexture(iconPath: string): PIXI.Texture | null {
     if (!flyTextureLoadStarted) {
         flyTextureLoadStarted = true;
         foundry.canvas.loadTexture(iconPath).then((result) => {
-            if (result instanceof PIXI.Texture) cachedFlyTexture = result;
+            if (!(result instanceof PIXI.Texture)) return;
+            cachedFlyTexture = result;
+
+            // Any token whose last refresh landed before this finished
+            // loading was left with the icon hidden (correctly, at the
+            // time) and has no reason to refresh again on its own -
+            // re-apply now so it doesn't stay missing until the next
+            // hover/drag.
+            if (!canvas?.ready) return;
+            for (const token of canvas.tokens?.placeables ?? []) {
+                (token as unknown as { _refreshTooltip: () => void })._refreshTooltip();
+            }
         }).catch((error: unknown) => {
             console.warn("token-names | Failed to load Flying status icon texture", error);
         });

@@ -25,10 +25,14 @@ Hooks.once("init", () => {
     TooltipIconReplacer.patchTokenPrototype();
 });
 
+function forceTooltipRefresh(token: Token): void {
+    (token as unknown as { _refreshTooltip: () => void })._refreshTooltip();
+}
+
 function refreshAllTooltips(): void {
     if (!canvas?.ready) return;
     for (const token of canvas.tokens?.placeables ?? []) {
-        (token as unknown as { _refreshTooltip: () => void })._refreshTooltip();
+        forceTooltipRefresh(token);
     }
 }
 
@@ -41,6 +45,18 @@ Hooks.on("updateToken", (tokenDocument: TokenDocument, changes: object) => {
     if (foundry.utils.hasProperty(changes, flagPath) && tokenDocument.object) {
         NameplateFitter.apply(tokenDocument.object, true);
     }
+});
+
+// core's own hover-triggered tooltip visibility toggle does not call
+// _refreshTooltip - it only fires content/position/scale recomputation
+// during an active drag - so without this, none of TooltipIconReplacer's
+// work ever runs for a token that's only ever hovered, not dragged.
+Hooks.on("hoverToken", (token: Token, hovered: boolean) => {
+    if (hovered) forceTooltipRefresh(token);
+});
+
+Hooks.on("controlToken", (token: Token, controlled: boolean) => {
+    if (controlled) forceTooltipRefresh(token);
 });
 
 Hooks.on("renderTokenConfig", (app, htmlElement: HTMLElement) => injectTokenConfigField(app, htmlElement));
