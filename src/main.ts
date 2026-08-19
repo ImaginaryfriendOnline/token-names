@@ -31,15 +31,26 @@ interface FitOptions {
 }
 
 export class NameplateFitter {
-    static apply(token: Token): void {
+    static patchTokenPrototype(): void {
+        const proto = Token.prototype as unknown as { _refreshNameplate: (...args: unknown[]) => unknown };
+        const original = proto._refreshNameplate;
+
+        proto._refreshNameplate = function (this: Token, ...args: unknown[]): unknown {
+            const result = original.apply(this, args);
+            NameplateFitter.apply(this);
+            return result;
+        };
+    }
+
+    static apply(token: Token, force = false): void {
         try {
-            this._apply(token);
+            this._apply(token, force);
         } catch (error) {
             console.warn("token-names | Failed to fit nameplate for token", token, error);
         }
     }
 
-    private static _apply(token: Token): void {
+    private static _apply(token: Token, force: boolean): void {
         const nameplate = token.nameplate;
         const document = token.document;
         if (!nameplate || !document) return;
@@ -78,6 +89,7 @@ export class NameplateFitter {
         // signature would make us silently leave core's reset (oversized)
         // default in place.
         const stillInEffect =
+            !force &&
             cached !== undefined &&
             cached.signature === signature &&
             style.fontSize === cached.fontSize &&
@@ -100,7 +112,7 @@ export class NameplateFitter {
     static refreshAll(): void {
         if (!canvas?.ready) return;
         for (const token of canvas.tokens?.placeables ?? []) {
-            token.renderFlags.set({ refreshNameplate: true });
+            this.apply(token, true);
         }
     }
 

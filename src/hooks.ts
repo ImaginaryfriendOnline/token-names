@@ -9,20 +9,22 @@ Hooks.once("init", () => {
         [SETTINGS.FONT_SHRINK_STEP.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll()
     });
+
+    // Wrapping the real _refreshNameplate method (rather than relying on the
+    // public refreshToken Hook + renderFlags.set(), which is ticker-deferred
+    // and races against core's own cascading refreshes) guarantees our fit
+    // runs synchronously every time core actually rebuilds the nameplate.
+    NameplateFitter.patchTokenPrototype();
 });
 
+// Safety net for the very first paint; a no-op if the prototype wrap above
+// already handled it during the same draw cycle.
 Hooks.on("drawToken", (token: Token) => NameplateFitter.apply(token));
-Hooks.on("refreshToken", (token: Token) => NameplateFitter.apply(token));
-
-// A scene's initial load triggers several core-driven nameplate refresh
-// passes in quick succession; force one more fit pass once things have
-// settled so a scene switch doesn't leave stale/oversized nameplates.
-Hooks.on("canvasReady", () => NameplateFitter.refreshAll());
 
 Hooks.on("updateToken", (tokenDocument: TokenDocument, changes: object) => {
     const flagPath = `flags.${MODULE_ID}.${TOKEN_FLAGS.DISABLE_AUTOFIT}`;
-    if (foundry.utils.hasProperty(changes, flagPath)) {
-        tokenDocument.object?.renderFlags.set({ refreshNameplate: true });
+    if (foundry.utils.hasProperty(changes, flagPath) && tokenDocument.object) {
+        NameplateFitter.apply(tokenDocument.object, true);
     }
 });
 
