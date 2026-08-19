@@ -7,7 +7,14 @@ import {
     TOKEN_NAMES_CLASSES
 } from "./constants";
 
-const fitSignatures = new WeakMap<Token, string>();
+interface AppliedFit {
+    signature: string;
+    fontSize: number;
+    text: string;
+    wordWrap: boolean;
+}
+
+const appliedFits = new WeakMap<Token, AppliedFit>();
 
 function measureText(text: string, style: PIXI.TextStyle): PIXI.TextMetrics {
     // PixiJS v8 renamed TextMetrics -> CanvasTextMetrics; fall back defensively
@@ -25,6 +32,14 @@ interface FitOptions {
 
 export class NameplateFitter {
     static apply(token: Token): void {
+        try {
+            this._apply(token);
+        } catch (error) {
+            console.warn("token-names | Failed to fit nameplate for token", token, error);
+        }
+    }
+
+    private static _apply(token: Token): void {
         const nameplate = token.nameplate;
         const document = token.document;
         if (!nameplate || !document) return;
@@ -53,11 +68,33 @@ export class NameplateFitter {
             document.disposition
         ].join("|");
 
-        if (fitSignatures.get(token) === signature) return;
-        fitSignatures.set(token, signature);
+        const style = nameplate.style as PIXI.TextStyle;
+        const cached = appliedFits.get(token);
+
+        // Foundry can rebuild/reset the nameplate's style and text on refresh
+        // passes we don't control (this happens repeatedly during a scene's
+        // initial load). Only skip recomputation if our last output is still
+        // actually the thing on screen — otherwise a stale-but-matching
+        // signature would make us silently leave core's reset (oversized)
+        // default in place.
+        const stillInEffect =
+            cached !== undefined &&
+            cached.signature === signature &&
+            style.fontSize === cached.fontSize &&
+            nameplate.text === cached.text &&
+            style.wordWrap === cached.wordWrap;
+
+        if (stillInEffect) return;
 
         if (shouldFit) this._fit(nameplate, name, maxWidth, minFontSize, shrinkStep);
         if (colorByDisposition) this._applyDispositionColor(token, nameplate);
+
+        appliedFits.set(token, {
+            signature,
+            fontSize: style.fontSize as number,
+            text: nameplate.text,
+            wordWrap: style.wordWrap as boolean
+        });
     }
 
     static refreshAll(): void {
