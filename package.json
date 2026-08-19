@@ -1,0 +1,20 @@
+{
+    "name": "token-names",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Foundry VTT v14 module that keeps token nameplates from overflowing their token.",
+    "scripts": {
+        "build": "node esbuild.mjs",
+        "watch": "node esbuild.mjs --watch",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "esbuild": "^0.24.0",
+        "fvtt-types": "github:League-of-Foundry-Developers/foundry-vtt-types#main",
+        "typescript": "^5.6.0"
+    },
+    "allowScripts": {
+        "esbuild@0.24.2": true
+    }
+}

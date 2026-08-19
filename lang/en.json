@@ -1,0 +1,28 @@
+{
+    "token-names": {
+        "Settings": {
+            "enabled": {
+                "Name": "Enable Nameplate Auto-Fit",
+                "Hint": "Automatically shrink, wrap, or truncate token nameplates so they never exceed the width of their token."
+            },
+            "minFontSize": {
+                "Name": "Minimum Font Size",
+                "Hint": "The smallest font size nameplates may shrink to before wrapping or truncating instead."
+            },
+            "fontShrinkStep": {
+                "Name": "Font Shrink Step",
+                "Hint": "How many pixels to reduce the nameplate font size by on each shrink attempt."
+            },
+            "colorByDisposition": {
+                "Name": "Color Nameplate by Disposition",
+                "Hint": "Color nameplate text using the token's disposition color (hostile, neutral, friendly, or secret)."
+            }
+        },
+        "TokenConfig": {
+            "DisableAutoFit": {
+                "Name": "Disable Nameplate Auto-Fit",
+                "Hint": "Prevent this token's nameplate from being automatically shrunk, wrapped, or truncated to fit its width."
+            }
+        }
+    }
+}
