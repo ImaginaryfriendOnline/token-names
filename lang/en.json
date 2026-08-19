@@ -16,6 +16,10 @@
             "colorByDisposition": {
                 "Name": "Color Nameplate by Disposition",
                 "Hint": "Color nameplate text using the token's disposition color (hostile, neutral, friendly, or secret)."
+            },
+            "maxLines": {
+                "Name": "Maximum Nameplate Lines",
+                "Hint": "The maximum number of lines a wrapped nameplate may span before the last line is truncated with an ellipsis."
             }
         },
         "TokenConfig": {

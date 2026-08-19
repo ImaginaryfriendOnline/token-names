@@ -7,7 +7,8 @@ Hooks.once("init", () => {
         [SETTINGS.ENABLED.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.MIN_FONT_SIZE.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.FONT_SHRINK_STEP.key]: () => NameplateFitter.refreshAll(),
-        [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll()
+        [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll(),
+        [SETTINGS.MAX_LINES.key]: () => NameplateFitter.refreshAll()
     });
 
     // Wrapping the real _refreshNameplate method (rather than relying on the

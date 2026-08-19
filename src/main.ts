@@ -12,9 +12,18 @@ interface AppliedFit {
     fontSize: number;
     text: string;
     wordWrap: boolean;
+    fullName: string;
+    truncated: boolean;
+}
+
+interface FitResult {
+    truncated: boolean;
+    ellipsisRect: PIXI.Rectangle | null;
 }
 
 const appliedFits = new WeakMap<Token, AppliedFit>();
+const hoverBoundNameplates = new WeakSet<PIXI.Text>();
+const hoveringTokens = new WeakSet<Token>();
 
 function measureText(text: string, style: PIXI.TextStyle): PIXI.TextMetrics {
     // PixiJS v8 renamed TextMetrics -> CanvasTextMetrics; fall back defensively
@@ -74,6 +83,11 @@ export class NameplateFitter {
 
         if (!shouldFit) return;
 
+        // A core refresh firing while the pointer is still over the ellipsis
+        // must not clobber the temporary full-name reveal back to truncated
+        // text mid-hover; _bindHoverReveal restores it on pointerout instead.
+        if (hoveringTokens.has(token)) return;
+
         // Foundry scales the nameplate PIXI.Text object (e.g. relative to the
         // scene's grid size), but style.fontSize/measureText operate in the
         // nameplate's local, pre-scale space. Convert token.w into that same
@@ -84,12 +98,14 @@ export class NameplateFitter {
         const localMaxWidth = Math.max(1, maxWidth / nameplateScale);
         const minFontSize = game.settings.get(MODULE_ID, SETTINGS.MIN_FONT_SIZE.key) as number;
         const shrinkStep = game.settings.get(MODULE_ID, SETTINGS.FONT_SHRINK_STEP.key) as number;
+        const maxLines = game.settings.get(MODULE_ID, SETTINGS.MAX_LINES.key) as number;
 
         const signature = [
             name,
             localMaxWidth,
             minFontSize,
             shrinkStep,
+            maxLines,
             shouldFit,
             colorByDisposition,
             document.disposition
@@ -114,13 +130,35 @@ export class NameplateFitter {
 
         if (stillInEffect) return;
 
-        this._fit(nameplate, name, localMaxWidth, minFontSize, shrinkStep);
+        const result = this._fit(nameplate, name, localMaxWidth, minFontSize, shrinkStep, maxLines);
+        nameplate.hitArea = result.ellipsisRect ?? new PIXI.Rectangle(0, 0, 0, 0);
+        this._bindHoverReveal(token, nameplate);
 
         appliedFits.set(token, {
             signature,
             fontSize: style.fontSize as number,
             text: nameplate.text,
-            wordWrap: style.wordWrap as boolean
+            wordWrap: style.wordWrap as boolean,
+            fullName: name,
+            truncated: result.truncated
+        });
+    }
+
+    private static _bindHoverReveal(token: Token, nameplate: PIXI.Text): void {
+        if (hoverBoundNameplates.has(nameplate)) return;
+        hoverBoundNameplates.add(nameplate);
+
+        nameplate.eventMode = "static";
+        nameplate.on("pointerover", () => {
+            const cached = appliedFits.get(token);
+            if (!cached?.truncated) return;
+            hoveringTokens.add(token);
+            nameplate.text = cached.fullName;
+        });
+        nameplate.on("pointerout", () => {
+            hoveringTokens.delete(token);
+            const cached = appliedFits.get(token);
+            if (cached?.truncated) nameplate.text = cached.text;
         });
     }
 
@@ -136,8 +174,9 @@ export class NameplateFitter {
         name: string,
         maxWidth: number,
         minFontSize: number,
-        shrinkStep: number
-    ): void {
+        shrinkStep: number,
+        maxLines: number
+    ): FitResult {
         const baseStyle = nameplate.style as PIXI.TextStyle;
         const originalFontSize = baseStyle.fontSize as number;
         const clampedMinFontSize = Math.min(minFontSize, originalFontSize);
@@ -156,7 +195,7 @@ export class NameplateFitter {
 
         if (width <= maxWidth) {
             this._commit(nameplate, name, fontSize, { wordWrap: false });
-            return;
+            return { truncated: false, ellipsisRect: null };
         }
 
         fontSize = clampedMinFontSize;
@@ -174,16 +213,63 @@ export class NameplateFitter {
                 metrics = measureText(name, trial);
             }
 
-            this._commit(nameplate, name, fontSize, {
-                wordWrap: true,
-                wordWrapWidth: maxWidth,
-                breakWords: trial.breakWords
-            });
-            return;
+            if (metrics.lines.length <= maxLines) {
+                this._commit(nameplate, name, fontSize, {
+                    wordWrap: true,
+                    wordWrapWidth: maxWidth,
+                    breakWords: trial.breakWords
+                });
+                return { truncated: false, ellipsisRect: null };
+            }
+
+            const lines = metrics.lines.slice(0, maxLines);
+            const lastIndex = lines.length - 1;
+            lines[lastIndex] = this._truncateToFit(lines[lastIndex] ?? "", maxWidth, trial);
+            this._commit(nameplate, lines.join("\n"), fontSize, { wordWrap: false });
+
+            const bounds = nameplate.getLocalBounds();
+            const ellipsisWidth = measureText(ELLIPSIS, trial).width;
+            const lastLineWidth = measureText(lines[lastIndex], trial).width;
+            const lineX = this._alignedLineX(trial.align, bounds.x, bounds.width, lastLineWidth);
+            const lastLineY = bounds.y + bounds.height - metrics.lineHeight;
+
+            return {
+                truncated: true,
+                ellipsisRect: new PIXI.Rectangle(
+                    lineX + lastLineWidth - ellipsisWidth,
+                    lastLineY,
+                    ellipsisWidth,
+                    metrics.lineHeight
+                )
+            };
         }
 
         const truncated = this._truncateToFit(name, maxWidth, trial);
         this._commit(nameplate, truncated, fontSize, { wordWrap: false });
+
+        const bounds = nameplate.getLocalBounds();
+        const ellipsisWidth = measureText(ELLIPSIS, trial).width;
+
+        return {
+            truncated: true,
+            ellipsisRect: new PIXI.Rectangle(
+                bounds.x + bounds.width - ellipsisWidth,
+                bounds.y,
+                ellipsisWidth,
+                bounds.height
+            )
+        };
+    }
+
+    private static _alignedLineX(align: string, blockX: number, blockWidth: number, lineWidth: number): number {
+        switch (align) {
+            case "right":
+                return blockX + (blockWidth - lineWidth);
+            case "center":
+                return blockX + (blockWidth - lineWidth) / 2;
+            default:
+                return blockX;
+        }
     }
 
     private static _truncateToFit(name: string, maxWidth: number, trial: PIXI.TextStyle): string {

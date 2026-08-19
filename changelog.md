@@ -1,3 +1,8 @@
+##### 1.1.0
+
+- Added: a "Maximum Nameplate Lines" setting (default 3) capping how many lines a wrapped nameplate may span. If a name would need more lines than that at the minimum font size, the last visible line is truncated with an ellipsis instead of letting the nameplate grow indefinitely.
+- Added: hovering directly over an ellipsis-truncated nameplate's "…" temporarily reveals the full, untruncated name; moving the pointer away restores the truncated display. Applies to both single-line and multi-line truncation.
+
 ##### 1.0.3
 
 - Fix: on scenes using a non-default grid size, nameplates could badly overflow their token even though the module thought they fit. Foundry scales the nameplate text object relative to the scene's grid size, but the fit math compared the (unscaled) measured text width directly against the token's (scaled) pixel width. The comparison now converts the token width into the nameplate's local, unscaled space first.

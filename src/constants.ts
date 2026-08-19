@@ -42,6 +42,17 @@ export const SETTINGS = {
         restricted: true,
         default: false,
         type: Boolean
+    },
+    MAX_LINES: {
+        key: "maxLines",
+        name: "token-names.Settings.maxLines.Name",
+        hint: "token-names.Settings.maxLines.Hint",
+        scope: "world" as const,
+        config: true,
+        restricted: true,
+        default: 3,
+        type: Number,
+        range: { min: 1, max: 10, step: 1 }
     }
 } as const;
 

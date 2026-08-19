@@ -11,6 +11,7 @@ declare module "fvtt-types/configuration" {
         "token-names.minFontSize": number;
         "token-names.fontShrinkStep": number;
         "token-names.colorByDisposition": boolean;
+        "token-names.maxLines": number;
     }
 
     interface FlagConfig {
