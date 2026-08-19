@@ -393,23 +393,40 @@ export class TooltipIconReplacer {
         // when computing bounds) so we always measure the text alone.
         if (sprite) sprite.visible = false;
 
-        const bounds = tooltip.getLocalBounds();
-        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
-
         const icon = sprite ?? new PIXI.Sprite();
         if (!sprite) {
             // Decorative only - never a pointer-event target. Without this,
             // PIXI's hit-test walk still treats it as an interactive
             // candidate (it inherits the Token's own interactive eventMode)
             // and calls its containsPoint(), which throws if the icon's
-            // texture hasn't finished loading yet.
+            // texture isn't ready to render yet.
             icon.eventMode = "none";
             tooltipIconSprites.set(token, icon);
             tooltip.addChild(icon);
         }
 
+        // Re-resolve the texture on every call rather than caching it once:
+        // Foundry/PIXI can unload/evict a texture's underlying resource after
+        // it's been idle, and re-requesting it (a cheap cache lookup, not a
+        // re-fetch, when still cached) is how we notice and recover from that.
         const cachedTexture = foundry.canvas.getTexture(iconPath);
-        icon.texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
+        const texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
+        icon.texture = texture;
+
+        // A texture that hasn't finished loading (or was since evicted) has
+        // no populated `.orig`/`.trim` yet. Sprite's width/height setters and
+        // its bounds/vertex calculation all read those directly with no null
+        // check, so touching them here would throw - both synchronously and,
+        // worse, from PIXI's own per-frame render pass for as long as the
+        // sprite stays visible. Stay hidden until the texture reports ready;
+        // later refreshes (which happen frequently) retry naturally.
+        if (!texture.valid) {
+            icon.visible = false;
+            return;
+        }
+
+        const bounds = tooltip.getLocalBounds();
+        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
         icon.width = size;
         icon.height = size;
         icon.x = bounds.x - size + 5;
