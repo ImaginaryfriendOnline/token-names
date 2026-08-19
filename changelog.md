@@ -1,3 +1,9 @@
+##### 1.0.3
+
+- Fix: on scenes using a non-default grid size, nameplates could badly overflow their token even though the module thought they fit. Foundry scales the nameplate text object relative to the scene's grid size, but the fit math compared the (unscaled) measured text width directly against the token's (scaled) pixel width. The comparison now converts the token width into the nameplate's local, unscaled space first.
+- Fix: disposition-based nameplate coloring only ever applied once and then got silently reverted by core's next nameplate refresh, because the color application was skipped whenever the fit cache thought nothing had changed. Color is now reapplied on every refresh regardless of the fit cache.
+- Fix: `Token.prototype` access triggered a v13+ deprecation warning (global `Token` is now namespaced under `foundry.canvas.placeables.Token`). The prototype patch now reads the class through the namespaced path.
+
 ##### 1.0.2
 
 - Fix (for real this time): nameplates could still revert to their oversized default on scene switches, because the fix relied on `renderFlags.set()`, which only schedules a refresh for a later render tick and could race against core's own refresh cycle. The fit now runs by directly wrapping `Token#_refreshNameplate`, so it's applied synchronously every time core actually rebuilds a nameplate, with no timing dependency.

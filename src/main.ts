@@ -32,7 +32,8 @@ interface FitOptions {
 
 export class NameplateFitter {
     static patchTokenPrototype(): void {
-        const proto = Token.prototype as unknown as { _refreshNameplate: (...args: unknown[]) => unknown };
+        const TokenClass = foundry.canvas.placeables.Token;
+        const proto = TokenClass.prototype as unknown as { _refreshNameplate: (...args: unknown[]) => unknown };
         const original = proto._refreshNameplate;
 
         proto._refreshNameplate = function (this: Token, ...args: unknown[]): unknown {
@@ -65,13 +66,28 @@ export class NameplateFitter {
 
         if (!shouldFit && !colorByDisposition) return;
 
+        // Applied unconditionally (cheap) rather than gated behind the fit
+        // cache below: core resets the nameplate's fill on every refresh, and
+        // gating it would mean the color only sticks until the next refresh
+        // pass whose fontSize/text/wordWrap happen to still match the cache.
+        if (colorByDisposition) this._applyDispositionColor(token, nameplate);
+
+        if (!shouldFit) return;
+
+        // Foundry scales the nameplate PIXI.Text object (e.g. relative to the
+        // scene's grid size), but style.fontSize/measureText operate in the
+        // nameplate's local, pre-scale space. Convert token.w into that same
+        // local space, or the fit target is wrong by the scale factor on any
+        // scene whose grid size isn't the nameplate's baseline.
         const maxWidth = Math.max(1, token.w);
+        const nameplateScale = Math.abs(nameplate.scale?.x || 1) || 1;
+        const localMaxWidth = Math.max(1, maxWidth / nameplateScale);
         const minFontSize = game.settings.get(MODULE_ID, SETTINGS.MIN_FONT_SIZE.key) as number;
         const shrinkStep = game.settings.get(MODULE_ID, SETTINGS.FONT_SHRINK_STEP.key) as number;
 
         const signature = [
             name,
-            maxWidth,
+            localMaxWidth,
             minFontSize,
             shrinkStep,
             shouldFit,
@@ -98,8 +114,7 @@ export class NameplateFitter {
 
         if (stillInEffect) return;
 
-        if (shouldFit) this._fit(nameplate, name, maxWidth, minFontSize, shrinkStep);
-        if (colorByDisposition) this._applyDispositionColor(token, nameplate);
+        this._fit(nameplate, name, localMaxWidth, minFontSize, shrinkStep);
 
         appliedFits.set(token, {
             signature,
