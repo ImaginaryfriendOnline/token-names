@@ -1,3 +1,7 @@
+##### 1.2.1
+
+- Fix: the elevation icon never actually appeared. The icon sprite is parented to the tooltip text object so it inherits its transform, but PIXI's bounds calculation includes visible children — so once the icon existed as a child, it contaminated the very text-bounds measurement used to size and position it, on every refresh after the first. The icon is now hidden before that measurement (PIXI skips invisible children when computing bounds) so it always measures the text alone.
+
 ##### 1.2.0
 
 - Added: a "Replace Elevation Icon" setting (default off). When enabled, a token's elevation tooltip has its "+" replaced with the world's configured Flying status effect icon, keeping the elevation number visible. Negative elevation, zero elevation, and worlds without a Flying status effect configured are left untouched.

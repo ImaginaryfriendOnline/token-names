@@ -380,6 +380,16 @@ export class TooltipIconReplacer {
 
         tooltip.text = tooltip.text.slice(1);
 
+        // PIXI's bounds calculation includes visible children, so a
+        // previously-sized (or default-texture-sized) icon already parented
+        // to the tooltip would contaminate this measurement of the text
+        // itself. Hiding it first excludes it (PIXI skips invisible children
+        // when computing bounds) so we always measure the text alone.
+        if (sprite) sprite.visible = false;
+
+        const bounds = tooltip.getLocalBounds();
+        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
+
         const icon = sprite ?? new PIXI.Sprite();
         if (!sprite) {
             tooltipIconSprites.set(token, icon);
@@ -388,9 +398,6 @@ export class TooltipIconReplacer {
 
         const cachedTexture = foundry.canvas.getTexture(iconPath);
         icon.texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
-
-        const bounds = tooltip.getLocalBounds();
-        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
         icon.width = size;
         icon.height = size;
         icon.x = bounds.x - size;
