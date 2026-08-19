@@ -9,7 +9,11 @@ Hooks.once("init", () => {
         [SETTINGS.FONT_SHRINK_STEP.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.MAX_LINES.key]: () => NameplateFitter.refreshAll(),
-        [SETTINGS.REPLACE_ELEVATION_ICON.key]: () => refreshAllTooltips()
+        [SETTINGS.REPLACE_ELEVATION_ICON.key]: () => refreshAllTooltips(),
+        [SETTINGS.TOOLTIP_SCALE.key]: () => refreshAllTooltips(),
+        [SETTINGS.TOOLTIP_ANCHOR.key]: () => refreshAllTooltips(),
+        [SETTINGS.TOOLTIP_OFFSET_X.key]: () => refreshAllTooltips(),
+        [SETTINGS.TOOLTIP_OFFSET_Y.key]: () => refreshAllTooltips()
     });
 
     // Wrapping the real _refreshNameplate/_refreshTooltip methods (rather than

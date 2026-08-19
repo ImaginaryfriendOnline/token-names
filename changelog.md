@@ -1,3 +1,10 @@
+##### 1.3.0
+
+- Fix: a crash (`Cannot read properties of null (reading 'width')` in `Sprite.containsPoint`) could occur during ordinary pointer movement once the elevation icon was showing. The icon sprite inherits the interactive Token's effective event mode by default, so PIXI's pointer hit-testing tried to hit-test it and called into its texture before the texture had finished loading. The icon is now explicitly excluded from hit-testing (`eventMode = "none"`), since it was never meant to receive pointer events anyway — this likely also explains why the icon could get stuck hidden after dragging a token, since the uncaught crash could interrupt Foundry's own tooltip re-display logic mid-refresh.
+- Added: an "Elevation Tooltip Scale" setting to resize the entire elevation tooltip (number and icon together).
+- Added: an "Elevation Tooltip Position" setting with anchor presets (Top/Bottom Left/Center/Right, Center) plus X/Y pixel offset settings to fine-tune placement relative to the token. Defaults to Foundry's own placement until a preset is chosen. Applies regardless of whether "Replace Elevation Icon" is enabled.
+- Fix: the elevation icon now sits 5px closer to the number.
+
 ##### 1.2.1
 
 - Fix: the elevation icon never actually appeared. The icon sprite is parented to the tooltip text object so it inherits its transform, but PIXI's bounds calculation includes visible children — so once the icon existed as a child, it contaminated the very text-bounds measurement used to size and position it, on every refresh after the first. The icon is now hidden before that measurement (PIXI skips invisible children when computing bounds) so it always measures the text alone.

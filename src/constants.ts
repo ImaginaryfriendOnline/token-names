@@ -63,6 +63,59 @@ export const SETTINGS = {
         restricted: true,
         default: false,
         type: Boolean
+    },
+    TOOLTIP_SCALE: {
+        key: "tooltipScale",
+        name: "token-names.Settings.tooltipScale.Name",
+        hint: "token-names.Settings.tooltipScale.Hint",
+        scope: "world" as const,
+        config: true,
+        restricted: true,
+        default: 1,
+        type: Number,
+        range: { min: 0.5, max: 3, step: 0.1 }
+    },
+    TOOLTIP_ANCHOR: {
+        key: "tooltipAnchor",
+        name: "token-names.Settings.tooltipAnchor.Name",
+        hint: "token-names.Settings.tooltipAnchor.Hint",
+        scope: "world" as const,
+        config: true,
+        restricted: true,
+        default: "default",
+        type: String,
+        choices: {
+            default: "token-names.Settings.tooltipAnchor.Choices.default",
+            topLeft: "token-names.Settings.tooltipAnchor.Choices.topLeft",
+            topCenter: "token-names.Settings.tooltipAnchor.Choices.topCenter",
+            topRight: "token-names.Settings.tooltipAnchor.Choices.topRight",
+            bottomLeft: "token-names.Settings.tooltipAnchor.Choices.bottomLeft",
+            bottomCenter: "token-names.Settings.tooltipAnchor.Choices.bottomCenter",
+            bottomRight: "token-names.Settings.tooltipAnchor.Choices.bottomRight",
+            center: "token-names.Settings.tooltipAnchor.Choices.center"
+        }
+    },
+    TOOLTIP_OFFSET_X: {
+        key: "tooltipOffsetX",
+        name: "token-names.Settings.tooltipOffsetX.Name",
+        hint: "token-names.Settings.tooltipOffsetX.Hint",
+        scope: "world" as const,
+        config: true,
+        restricted: true,
+        default: 0,
+        type: Number,
+        range: { min: -50, max: 50, step: 1 }
+    },
+    TOOLTIP_OFFSET_Y: {
+        key: "tooltipOffsetY",
+        name: "token-names.Settings.tooltipOffsetY.Name",
+        hint: "token-names.Settings.tooltipOffsetY.Hint",
+        scope: "world" as const,
+        config: true,
+        restricted: true,
+        default: 0,
+        type: Number,
+        range: { min: -50, max: 50, step: 1 }
     }
 } as const;
 

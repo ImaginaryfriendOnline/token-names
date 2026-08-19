@@ -363,9 +363,15 @@ export class TooltipIconReplacer {
     private static _apply(token: Token): void {
         const tooltip = token.tooltip;
         const sprite = tooltipIconSprites.get(token);
+        if (!tooltip) {
+            if (sprite) sprite.visible = false;
+            return;
+        }
+
+        this._applyPositionAndScale(token, tooltip);
 
         const enabled = game.settings.get(MODULE_ID, SETTINGS.REPLACE_ELEVATION_ICON.key) as boolean;
-        if (!enabled || !tooltip || !tooltip.text.startsWith("+")) {
+        if (!enabled || !tooltip.text.startsWith("+")) {
             if (sprite) sprite.visible = false;
             return;
         }
@@ -392,6 +398,12 @@ export class TooltipIconReplacer {
 
         const icon = sprite ?? new PIXI.Sprite();
         if (!sprite) {
+            // Decorative only - never a pointer-event target. Without this,
+            // PIXI's hit-test walk still treats it as an interactive
+            // candidate (it inherits the Token's own interactive eventMode)
+            // and calls its containsPoint(), which throws if the icon's
+            // texture hasn't finished loading yet.
+            icon.eventMode = "none";
             tooltipIconSprites.set(token, icon);
             tooltip.addChild(icon);
         }
@@ -400,9 +412,60 @@ export class TooltipIconReplacer {
         icon.texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
         icon.width = size;
         icon.height = size;
-        icon.x = bounds.x - size;
+        icon.x = bounds.x - size + 5;
         icon.y = bounds.y + (bounds.height - size) / 2;
         icon.visible = true;
+    }
+
+    private static _applyPositionAndScale(token: Token, tooltip: PIXI.Text): void {
+        const scale = game.settings.get(MODULE_ID, SETTINGS.TOOLTIP_SCALE.key) as number;
+        if (scale !== 1) {
+            tooltip.scale.set(tooltip.scale.x * scale, tooltip.scale.y * scale);
+        }
+
+        const anchorChoice = game.settings.get(MODULE_ID, SETTINGS.TOOLTIP_ANCHOR.key) as string;
+        const offsetX = game.settings.get(MODULE_ID, SETTINGS.TOOLTIP_OFFSET_X.key) as number;
+        const offsetY = game.settings.get(MODULE_ID, SETTINGS.TOOLTIP_OFFSET_Y.key) as number;
+
+        if (anchorChoice === "default") {
+            if (offsetX !== 0 || offsetY !== 0) {
+                tooltip.position.set(tooltip.x + offsetX, tooltip.y + offsetY);
+            }
+            return;
+        }
+
+        const margin = 4;
+        const point = this._anchoredPoint(anchorChoice, token.w, token.h, margin);
+        if (!point) return;
+
+        tooltip.anchor.set(point.anchorX, point.anchorY);
+        tooltip.position.set(point.x + offsetX, point.y + offsetY);
+    }
+
+    private static _anchoredPoint(
+        anchor: string,
+        w: number,
+        h: number,
+        margin: number
+    ): { x: number; y: number; anchorX: number; anchorY: number } | null {
+        switch (anchor) {
+            case "topLeft":
+                return { x: -margin, y: -margin, anchorX: 1, anchorY: 1 };
+            case "topCenter":
+                return { x: w / 2, y: -margin, anchorX: 0.5, anchorY: 1 };
+            case "topRight":
+                return { x: w + margin, y: -margin, anchorX: 0, anchorY: 1 };
+            case "bottomLeft":
+                return { x: -margin, y: h + margin, anchorX: 1, anchorY: 0 };
+            case "bottomCenter":
+                return { x: w / 2, y: h + margin, anchorX: 0.5, anchorY: 0 };
+            case "bottomRight":
+                return { x: w + margin, y: h + margin, anchorX: 0, anchorY: 0 };
+            case "center":
+                return { x: w / 2, y: h / 2, anchorX: 0.5, anchorY: 0.5 };
+            default:
+                return null;
+        }
     }
 }
 

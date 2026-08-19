@@ -24,6 +24,32 @@
             "replaceElevationIcon": {
                 "Name": "Replace Elevation Icon",
                 "Hint": "Replace the \"+\" in a token's elevation tooltip with the world's configured Flying status effect icon. Does nothing if no Flying status effect is configured."
+            },
+            "tooltipScale": {
+                "Name": "Elevation Tooltip Scale",
+                "Hint": "Scales the entire elevation tooltip (number and icon together)."
+            },
+            "tooltipAnchor": {
+                "Name": "Elevation Tooltip Position",
+                "Hint": "Where the elevation tooltip appears relative to the token. \"Default\" leaves Foundry's own placement untouched.",
+                "Choices": {
+                    "default": "Default (Foundry)",
+                    "topLeft": "Top Left",
+                    "topCenter": "Top Center",
+                    "topRight": "Top Right",
+                    "bottomLeft": "Bottom Left",
+                    "bottomCenter": "Bottom Center",
+                    "bottomRight": "Bottom Right",
+                    "center": "Center"
+                }
+            },
+            "tooltipOffsetX": {
+                "Name": "Elevation Tooltip Offset X",
+                "Hint": "Fine-tune the elevation tooltip's horizontal position, in pixels, from its selected anchor (or from Foundry's default placement)."
+            },
+            "tooltipOffsetY": {
+                "Name": "Elevation Tooltip Offset Y",
+                "Hint": "Fine-tune the elevation tooltip's vertical position, in pixels, from its selected anchor (or from Foundry's default placement)."
             }
         },
         "TokenConfig": {
