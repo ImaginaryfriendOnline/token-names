@@ -2,7 +2,7 @@
     "id": "token-names",
     "title": "Token Names",
     "description": "<p>Automatically shrinks, wraps, or truncates token nameplates so they never overflow the width of their token, with an optional disposition-based color mode.</p>",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "authors": [
         {
             "name": "Imaginaryfriend",

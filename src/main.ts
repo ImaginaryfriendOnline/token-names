@@ -339,6 +339,30 @@ export class NameplateFitter {
 
 const tooltipIconSprites = new WeakMap<Token, PIXI.Sprite>();
 
+// Loaded once and reused for every token's icon, rather than re-resolving via
+// PIXI.Texture.from()/getTexture() on every refresh: repeatedly re-deriving a
+// texture for the same path was producing a Texture whose `.valid` flickered
+// rather than settling permanently true, causing sporadic PIXI crashes (both
+// in pointer hit-testing and in its own per-frame render pass) whenever
+// something touched the not-yet-ready texture's geometry.
+let cachedFlyTexture: PIXI.Texture | null = null;
+let flyTextureLoadStarted = false;
+
+function getFlyTexture(iconPath: string): PIXI.Texture | null {
+    if (cachedFlyTexture?.valid) return cachedFlyTexture;
+
+    if (!flyTextureLoadStarted) {
+        flyTextureLoadStarted = true;
+        foundry.canvas.loadTexture(iconPath).then((result) => {
+            if (result instanceof PIXI.Texture) cachedFlyTexture = result;
+        }).catch((error: unknown) => {
+            console.warn("token-names | Failed to load Flying status icon texture", error);
+        });
+    }
+
+    return null;
+}
+
 export class TooltipIconReplacer {
     static patchTokenPrototype(): void {
         const TokenClass = foundry.canvas.placeables.Token;
@@ -405,25 +429,20 @@ export class TooltipIconReplacer {
             tooltip.addChild(icon);
         }
 
-        // Re-resolve the texture on every call rather than caching it once:
-        // Foundry/PIXI can unload/evict a texture's underlying resource after
-        // it's been idle, and re-requesting it (a cheap cache lookup, not a
-        // re-fetch, when still cached) is how we notice and recover from that.
-        const cachedTexture = foundry.canvas.getTexture(iconPath);
-        const texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
-        icon.texture = texture;
-
-        // A texture that hasn't finished loading (or was since evicted) has
-        // no populated `.orig`/`.trim` yet. Sprite's width/height setters and
-        // its bounds/vertex calculation all read those directly with no null
-        // check, so touching them here would throw - both synchronously and,
-        // worse, from PIXI's own per-frame render pass for as long as the
-        // sprite stays visible. Stay hidden until the texture reports ready;
+        // Loaded once (async) and reused - see getFlyTexture. A texture
+        // that hasn't finished loading has no populated `.orig`/`.trim` yet;
+        // Sprite's width/height setters and its bounds/vertex calculation
+        // all read those directly with no null check, so touching them (or
+        // leaving the sprite visible) before it's ready would throw - both
+        // synchronously and, worse, from PIXI's own per-frame render pass
+        // for as long as the sprite stays visible. Stay hidden until ready;
         // later refreshes (which happen frequently) retry naturally.
-        if (!texture.valid) {
+        const texture = getFlyTexture(iconPath);
+        if (!texture) {
             icon.visible = false;
             return;
         }
+        icon.texture = texture;
 
         const bounds = tooltip.getLocalBounds();
         const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);

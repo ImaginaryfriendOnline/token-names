@@ -1,3 +1,7 @@
+##### 1.3.2
+
+- Fix: the crash still recurred after 1.3.1's `texture.valid` check, because the icon's texture was being re-resolved via `PIXI.Texture.from()`/`getTexture()` on every single refresh instead of reused, which appears to have kept producing a texture whose `.valid` never settled permanently true. The icon's texture is now loaded exactly once (asynchronously) and the same confirmed-loaded `PIXI.Texture` instance is reused for every token from then on.
+
 ##### 1.3.1
 
 - Fix: a second crash (`Cannot read properties of null (reading 'width')` in `Sprite.calculateVertices`/`_calculateBounds`), this time thrown from PIXI's own per-frame render pass rather than pointer events — meaning it could recur every tick for as long as the icon's texture wasn't ready to render, plausibly explaining the icon failing to show at all outside of dragging and tooltip scale/position changes appearing to have no effect while dragging (repeated uncaught exceptions could prevent new frames from completing). `Sprite`'s width/height setters and bounds calculation all read the texture's internal geometry with no readiness check, and a texture can be not-yet-loaded or since evicted by Foundry/PIXI's own resource management. The icon now checks `texture.valid` and re-resolves the texture on every refresh, staying hidden until it's actually ready to render instead of touching it prematurely.
