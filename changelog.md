@@ -1,3 +1,7 @@
+##### 1.1.1
+
+- Fix: hovering over a truncated nameplate's "…" didn't reveal the full name. Tokens have their own `hitArea` covering just their icon, and PIXI's normal hit-test walk stops recursing into a container's children once the container's own `hitArea` rejects the pointer position — so `pointerover`/`pointerout` never reached a nameplate sitting outside the token's icon bounds. The hover reveal now uses PIXI's `globalpointermove` event, which is dispatched to every interactive object regardless of that pruning, with manual enter/leave tracking against the ellipsis region.
+
 ##### 1.1.0
 
 - Added: a "Maximum Nameplate Lines" setting (default 3) capping how many lines a wrapped nameplate may span. If a name would need more lines than that at the minimum font size, the last visible line is truncated with an ellipsis instead of letting the nameplate grow indefinitely.

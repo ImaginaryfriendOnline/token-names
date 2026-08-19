@@ -148,17 +148,27 @@ export class NameplateFitter {
         if (hoverBoundNameplates.has(nameplate)) return;
         hoverBoundNameplates.add(nameplate);
 
+        // Tokens have their own hitArea covering just their icon, and PIXI's
+        // normal hit-test walk prunes recursion into a container's children
+        // once the container's own hitArea rejects the point — so pointerover/
+        // pointerout, which rely on that walk, never reach a nameplate sitting
+        // outside the token's icon bounds. globalpointermove is dispatched to
+        // every interactive display object on every pointer move regardless of
+        // that pruning, so we do our own enter/leave tracking against it here.
         nameplate.eventMode = "static";
-        nameplate.on("pointerover", () => {
+        nameplate.on("globalpointermove", (event: PIXI.FederatedPointerEvent) => {
             const cached = appliedFits.get(token);
-            if (!cached?.truncated) return;
-            hoveringTokens.add(token);
-            nameplate.text = cached.fullName;
-        });
-        nameplate.on("pointerout", () => {
-            hoveringTokens.delete(token);
-            const cached = appliedFits.get(token);
-            if (cached?.truncated) nameplate.text = cached.text;
+            const local = nameplate.toLocal(event.global);
+            const isOver = !!cached?.truncated && (nameplate.hitArea as PIXI.Rectangle).contains(local.x, local.y);
+            const wasOver = hoveringTokens.has(token);
+
+            if (isOver && !wasOver) {
+                hoveringTokens.add(token);
+                nameplate.text = cached!.fullName;
+            } else if (!isOver && wasOver) {
+                hoveringTokens.delete(token);
+                if (cached) nameplate.text = cached.text;
+            }
         });
     }
 
