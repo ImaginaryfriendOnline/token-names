@@ -1,5 +1,5 @@
 import { MODULE_ID, SETTINGS, TOKEN_FLAGS } from "./constants";
-import { NameplateFitter, injectTokenConfigField } from "./main";
+import { NameplateFitter, TooltipIconReplacer, injectTokenConfigField } from "./main";
 import { registerModuleSettings } from "./settings";
 
 Hooks.once("init", () => {
@@ -8,15 +8,25 @@ Hooks.once("init", () => {
         [SETTINGS.MIN_FONT_SIZE.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.FONT_SHRINK_STEP.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll(),
-        [SETTINGS.MAX_LINES.key]: () => NameplateFitter.refreshAll()
+        [SETTINGS.MAX_LINES.key]: () => NameplateFitter.refreshAll(),
+        [SETTINGS.REPLACE_ELEVATION_ICON.key]: () => refreshAllTooltips()
     });
 
-    // Wrapping the real _refreshNameplate method (rather than relying on the
-    // public refreshToken Hook + renderFlags.set(), which is ticker-deferred
-    // and races against core's own cascading refreshes) guarantees our fit
-    // runs synchronously every time core actually rebuilds the nameplate.
+    // Wrapping the real _refreshNameplate/_refreshTooltip methods (rather than
+    // relying on the public refreshToken Hook + renderFlags.set(), which is
+    // ticker-deferred and races against core's own cascading refreshes)
+    // guarantees our changes run synchronously every time core actually
+    // rebuilds the nameplate/tooltip.
     NameplateFitter.patchTokenPrototype();
+    TooltipIconReplacer.patchTokenPrototype();
 });
+
+function refreshAllTooltips(): void {
+    if (!canvas?.ready) return;
+    for (const token of canvas.tokens?.placeables ?? []) {
+        (token as unknown as { _refreshTooltip: () => void })._refreshTooltip();
+    }
+}
 
 // Safety net for the very first paint; a no-op if the prototype wrap above
 // already handled it during the same draw cycle.

@@ -337,6 +337,68 @@ export class NameplateFitter {
     }
 }
 
+const tooltipIconSprites = new WeakMap<Token, PIXI.Sprite>();
+
+export class TooltipIconReplacer {
+    static patchTokenPrototype(): void {
+        const TokenClass = foundry.canvas.placeables.Token;
+        const proto = TokenClass.prototype as unknown as { _refreshTooltip: (...args: unknown[]) => unknown };
+        const original = proto._refreshTooltip;
+
+        proto._refreshTooltip = function (this: Token, ...args: unknown[]): unknown {
+            const result = original.apply(this, args);
+            TooltipIconReplacer.apply(this);
+            return result;
+        };
+    }
+
+    static apply(token: Token): void {
+        try {
+            this._apply(token);
+        } catch (error) {
+            console.warn("token-names | Failed to replace elevation icon for token", token, error);
+        }
+    }
+
+    private static _apply(token: Token): void {
+        const tooltip = token.tooltip;
+        const sprite = tooltipIconSprites.get(token);
+
+        const enabled = game.settings.get(MODULE_ID, SETTINGS.REPLACE_ELEVATION_ICON.key) as boolean;
+        if (!enabled || !tooltip || !tooltip.text.startsWith("+")) {
+            if (sprite) sprite.visible = false;
+            return;
+        }
+
+        const flyId = CONFIG.specialStatusEffects.FLY;
+        const iconPath = CONFIG.statusEffects.find((effect) => effect.id === flyId)?.img;
+
+        if (!iconPath) {
+            if (sprite) sprite.visible = false;
+            return;
+        }
+
+        tooltip.text = tooltip.text.slice(1);
+
+        const icon = sprite ?? new PIXI.Sprite();
+        if (!sprite) {
+            tooltipIconSprites.set(token, icon);
+            tooltip.addChild(icon);
+        }
+
+        const cachedTexture = foundry.canvas.getTexture(iconPath);
+        icon.texture = cachedTexture instanceof PIXI.Texture ? cachedTexture : PIXI.Texture.from(iconPath);
+
+        const bounds = tooltip.getLocalBounds();
+        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
+        icon.width = size;
+        icon.height = size;
+        icon.x = bounds.x - size;
+        icon.y = bounds.y + (bounds.height - size) / 2;
+        icon.visible = true;
+    }
+}
+
 interface TokenConfigLike {
     document: {
         getFlag(scope: string, key: string): unknown;

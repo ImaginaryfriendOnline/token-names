@@ -1,3 +1,7 @@
+##### 1.2.0
+
+- Added: a "Replace Elevation Icon" setting (default off). When enabled, a token's elevation tooltip has its "+" replaced with the world's configured Flying status effect icon, keeping the elevation number visible. Negative elevation, zero elevation, and worlds without a Flying status effect configured are left untouched.
+
 ##### 1.1.1
 
 - Fix: hovering over a truncated nameplate's "…" didn't reveal the full name. Tokens have their own `hitArea` covering just their icon, and PIXI's normal hit-test walk stops recursing into a container's children once the container's own `hitArea` rejects the pointer position — so `pointerover`/`pointerout` never reached a nameplate sitting outside the token's icon bounds. The hover reveal now uses PIXI's `globalpointermove` event, which is dispatched to every interactive object regardless of that pruning, with manual enter/leave tracking against the ellipsis region.
