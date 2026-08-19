@@ -337,44 +337,7 @@ export class NameplateFitter {
     }
 }
 
-const tooltipIconSprites = new WeakMap<Token, PIXI.Sprite>();
-
-// Loaded once and reused for every token's icon, rather than re-resolving via
-// PIXI.Texture.from()/getTexture() on every refresh: repeatedly re-deriving a
-// texture for the same path was producing a Texture whose `.valid` flickered
-// rather than settling permanently true, causing sporadic PIXI crashes (both
-// in pointer hit-testing and in its own per-frame render pass) whenever
-// something touched the not-yet-ready texture's geometry.
-let cachedFlyTexture: PIXI.Texture | null = null;
-let flyTextureLoadStarted = false;
-
-function getFlyTexture(iconPath: string): PIXI.Texture | null {
-    if (cachedFlyTexture?.valid) return cachedFlyTexture;
-
-    if (!flyTextureLoadStarted) {
-        flyTextureLoadStarted = true;
-        foundry.canvas.loadTexture(iconPath).then((result) => {
-            if (!(result instanceof PIXI.Texture)) return;
-            cachedFlyTexture = result;
-
-            // Any token whose last refresh landed before this finished
-            // loading was left with the icon hidden (correctly, at the
-            // time) and has no reason to refresh again on its own -
-            // re-apply now so it doesn't stay missing until the next
-            // hover/drag.
-            if (!canvas?.ready) return;
-            for (const token of canvas.tokens?.placeables ?? []) {
-                (token as unknown as { _refreshTooltip: () => void })._refreshTooltip();
-            }
-        }).catch((error: unknown) => {
-            console.warn("token-names | Failed to load Flying status icon texture", error);
-        });
-    }
-
-    return null;
-}
-
-export class TooltipIconReplacer {
+export class TooltipPositioner {
     static patchTokenPrototype(): void {
         const TokenClass = foundry.canvas.placeables.Token;
         const proto = TokenClass.prototype as unknown as { _refreshTooltip: (...args: unknown[]) => unknown };
@@ -382,7 +345,7 @@ export class TooltipIconReplacer {
 
         proto._refreshTooltip = function (this: Token, ...args: unknown[]): unknown {
             const result = original.apply(this, args);
-            TooltipIconReplacer.apply(this);
+            TooltipPositioner.apply(this);
             return result;
         };
     }
@@ -391,77 +354,14 @@ export class TooltipIconReplacer {
         try {
             this._apply(token);
         } catch (error) {
-            console.warn("token-names | Failed to replace elevation icon for token", token, error);
+            console.warn("token-names | Failed to reposition elevation tooltip for token", token, error);
         }
     }
 
     private static _apply(token: Token): void {
         const tooltip = token.tooltip;
-        const sprite = tooltipIconSprites.get(token);
-        if (!tooltip) {
-            if (sprite) sprite.visible = false;
-            return;
-        }
-
+        if (!tooltip) return;
         this._applyPositionAndScale(token, tooltip);
-
-        const enabled = game.settings.get(MODULE_ID, SETTINGS.REPLACE_ELEVATION_ICON.key) as boolean;
-        if (!enabled || !tooltip.text.startsWith("+")) {
-            if (sprite) sprite.visible = false;
-            return;
-        }
-
-        const flyId = CONFIG.specialStatusEffects.FLY;
-        const iconPath = CONFIG.statusEffects.find((effect) => effect.id === flyId)?.img;
-
-        if (!iconPath) {
-            if (sprite) sprite.visible = false;
-            return;
-        }
-
-        tooltip.text = tooltip.text.slice(1);
-
-        // PIXI's bounds calculation includes visible children, so a
-        // previously-sized (or default-texture-sized) icon already parented
-        // to the tooltip would contaminate this measurement of the text
-        // itself. Hiding it first excludes it (PIXI skips invisible children
-        // when computing bounds) so we always measure the text alone.
-        if (sprite) sprite.visible = false;
-
-        const icon = sprite ?? new PIXI.Sprite();
-        if (!sprite) {
-            // Decorative only - never a pointer-event target. Without this,
-            // PIXI's hit-test walk still treats it as an interactive
-            // candidate (it inherits the Token's own interactive eventMode)
-            // and calls its containsPoint(), which throws if the icon's
-            // texture isn't ready to render yet.
-            icon.eventMode = "none";
-            tooltipIconSprites.set(token, icon);
-            tooltip.addChild(icon);
-        }
-
-        // Loaded once (async) and reused - see getFlyTexture. A texture
-        // that hasn't finished loading has no populated `.orig`/`.trim` yet;
-        // Sprite's width/height setters and its bounds/vertex calculation
-        // all read those directly with no null check, so touching them (or
-        // leaving the sprite visible) before it's ready would throw - both
-        // synchronously and, worse, from PIXI's own per-frame render pass
-        // for as long as the sprite stays visible. Stay hidden until ready;
-        // later refreshes (which happen frequently) retry naturally.
-        const texture = getFlyTexture(iconPath);
-        if (!texture) {
-            icon.visible = false;
-            return;
-        }
-        icon.texture = texture;
-
-        const bounds = tooltip.getLocalBounds();
-        const size = bounds.height || ((tooltip.style as PIXI.TextStyle).fontSize as number);
-        icon.width = size;
-        icon.height = size;
-        icon.x = bounds.x - size + 5;
-        icon.y = bounds.y + (bounds.height - size) / 2;
-        icon.visible = true;
     }
 
     private static _applyPositionAndScale(token: Token, tooltip: PIXI.Text): void {

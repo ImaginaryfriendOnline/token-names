@@ -54,16 +54,6 @@ export const SETTINGS = {
         type: Number,
         range: { min: 1, max: 10, step: 1 }
     },
-    REPLACE_ELEVATION_ICON: {
-        key: "replaceElevationIcon",
-        name: "token-names.Settings.replaceElevationIcon.Name",
-        hint: "token-names.Settings.replaceElevationIcon.Hint",
-        scope: "world" as const,
-        config: true,
-        restricted: true,
-        default: false,
-        type: Boolean
-    },
     TOOLTIP_SCALE: {
         key: "tooltipScale",
         name: "token-names.Settings.tooltipScale.Name",

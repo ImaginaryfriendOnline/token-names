@@ -21,13 +21,9 @@
                 "Name": "Maximum Nameplate Lines",
                 "Hint": "The maximum number of lines a wrapped nameplate may span before the last line is truncated with an ellipsis."
             },
-            "replaceElevationIcon": {
-                "Name": "Replace Elevation Icon",
-                "Hint": "Replace the \"+\" in a token's elevation tooltip with the world's configured Flying status effect icon. Does nothing if no Flying status effect is configured."
-            },
             "tooltipScale": {
                 "Name": "Elevation Tooltip Scale",
-                "Hint": "Scales the entire elevation tooltip (number and icon together)."
+                "Hint": "Scales the elevation tooltip's text."
             },
             "tooltipAnchor": {
                 "Name": "Elevation Tooltip Position",

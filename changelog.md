@@ -1,3 +1,7 @@
+##### 1.4.0
+
+- Removed: the "Replace Elevation Icon" feature. It caused a recurring PIXI rendering crash tied to the icon's texture readiness that persisted across several different fix attempts, so it's been removed rather than continuing to chase it. The "Elevation Tooltip Scale" and "Elevation Tooltip Position" settings are unaffected and remain available.
+
 ##### 1.3.3
 
 - Fix: the elevation icon (and the scale/position settings) only ever applied while actively dragging a token, because core's `_refreshTooltip` — the method this module hooks — only actually runs during a drag; hovering a stationary token merely toggles the tooltip's visibility without recomputing its content, so nothing this module does ever ran outside of a drag. The module now also forces a refresh whenever a token is hovered or selected, so the icon/scale/position apply in the normal case, not just while dragging.

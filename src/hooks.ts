@@ -1,5 +1,5 @@
 import { MODULE_ID, SETTINGS, TOKEN_FLAGS } from "./constants";
-import { NameplateFitter, TooltipIconReplacer, injectTokenConfigField } from "./main";
+import { NameplateFitter, TooltipPositioner, injectTokenConfigField } from "./main";
 import { registerModuleSettings } from "./settings";
 
 Hooks.once("init", () => {
@@ -9,7 +9,6 @@ Hooks.once("init", () => {
         [SETTINGS.FONT_SHRINK_STEP.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.COLOR_BY_DISPOSITION.key]: () => NameplateFitter.refreshAll(),
         [SETTINGS.MAX_LINES.key]: () => NameplateFitter.refreshAll(),
-        [SETTINGS.REPLACE_ELEVATION_ICON.key]: () => refreshAllTooltips(),
         [SETTINGS.TOOLTIP_SCALE.key]: () => refreshAllTooltips(),
         [SETTINGS.TOOLTIP_ANCHOR.key]: () => refreshAllTooltips(),
         [SETTINGS.TOOLTIP_OFFSET_X.key]: () => refreshAllTooltips(),
@@ -22,7 +21,7 @@ Hooks.once("init", () => {
     // guarantees our changes run synchronously every time core actually
     // rebuilds the nameplate/tooltip.
     NameplateFitter.patchTokenPrototype();
-    TooltipIconReplacer.patchTokenPrototype();
+    TooltipPositioner.patchTokenPrototype();
 });
 
 function forceTooltipRefresh(token: Token): void {
@@ -49,8 +48,8 @@ Hooks.on("updateToken", (tokenDocument: TokenDocument, changes: object) => {
 
 // core's own hover-triggered tooltip visibility toggle does not call
 // _refreshTooltip - it only fires content/position/scale recomputation
-// during an active drag - so without this, none of TooltipIconReplacer's
-// work ever runs for a token that's only ever hovered, not dragged.
+// during an active drag - so without this, TooltipPositioner's scale/
+// position settings never apply to a token that's only ever hovered.
 Hooks.on("hoverToken", (token: Token, hovered: boolean) => {
     if (hovered) forceTooltipRefresh(token);
 });
